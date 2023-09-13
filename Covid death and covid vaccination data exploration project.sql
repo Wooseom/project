@@ -11,13 +11,13 @@ SELECT Location, date, total_cases, new_cases, total_deaths, population
 from coviddeath
 order by 1,2
 
-#looking at total cases vs total deaths
+#looking at total cases vs total deaths of Canada
 SELECT Location, date, total_cases, total_deaths, (total_deaths/total_cases)*100 as DeathPercentage 
 from coviddeath
 where location like '%Canada%'
 order by 1,2
 
-#looking at total cases vs population
+#looking at total cases vs population of Canada
 #percentage of population got covid
 SELECT Location, date, Population,total_cases, (total_cases/Population)*100 as PercentPopulationInfected 
 from coviddeath
@@ -33,6 +33,7 @@ GROUP BY Location, Population
 order by PercentPopulationInfected desc
 
 #showing countries with highest death count per population
+#converting Total_deaths to integer data type
 SELECT Location, CAST(MAX(Total_deaths) AS SIGNED) as TotalDeathCount
 from coviddeath
 #where location like '%Canada%'
@@ -40,10 +41,10 @@ WHERE continent is not null
 GROUP BY Location
 order by TotalDeathCount desc
 
-#Let's break things down by continent
+# break things down by continent 
 SELECT continent, CAST(MAX(Total_deaths) AS SIGNED) as TotalDeathCount
 from coviddeath
-#where location like '%Canada%'
+# where location like '%Canada%'
 WHERE continent is not null
 GROUP BY continent
 order by TotalDeathCount desc
@@ -65,6 +66,11 @@ GROUP BY date
 order by 1,2
 
 #Looking at total population vs vaccinations
+#Defining PopvsVac as CTE 
+#Main query: joining the coviddeath table and covidvaccination table 
+	#based on the location and date columns
+#used subquery 'tv' to group vaccination data and got cumulative new vaccinations for each location and date
+
 with PopvsVac (Continent, Location, Date, Population, New_Vaccinations, RollingPeopleVaccinated) as
 (
 SELECT coviddeath.continent, coviddeath.location, coviddeath.date, coviddeath.population, covidvaccination.new_vaccinations, 
@@ -82,20 +88,5 @@ WHERE coviddeath.continent IS NOT NULL
 select * ,(RollingPeopleVaccinated/Population)*100
 from PopvsVac;
 
-#Creating view to store data for later visualization
-Create View PercentPopulationVaccinatedView as
-SELECT coviddeath.continent, coviddeath.location, coviddeath.date, coviddeath.population, covidvaccination.new_vaccinations, 
-SUM(covidvaccination.new_vaccinations) OVER (Partition by coviddeath.location, coviddeath.date) as RollingPeopleVaccinated
-FROM coviddeath 
-JOIN covidvaccination ON coviddeath.location = covidvaccination.location AND coviddeath.date = covidvaccination.date
-JOIN (
-	SELECT location, date, SUM(new_vaccinations) AS total_new_vaccinations
-    FROM covidvaccination
-    GROUP BY location, date
-) tv on covidvaccination.location= tv.location and covidvaccination.date= tv.date
 
-WHERE coviddeath.continent IS NOT NULL
-
-SELECT *
-FROM PercentPopulationVaccinated
 
